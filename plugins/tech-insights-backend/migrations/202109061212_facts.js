@@ -24,10 +24,17 @@ exports.up = async function up(knex) {
     table.comment(
       'The table for tech insight fact collections. Contains facts for individual fact retriever namespace/ref.',
     );
-    table
-      .text('id')
-      .notNullable()
-      .comment('Unique identifier of the fact retriever plugin/package');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .uuid('id')
+        .notNullable()
+        .comment('Unique identifier of the fact retriever plugin/package');
+    } else {
+      table
+        .text('id')
+        .notNullable()
+        .comment('Unique identifier of the fact retriever plugin/package');
+    }
     table
       .string('version')
       .notNullable()
@@ -39,10 +46,17 @@ exports.up = async function up(knex) {
       .defaultTo(knex.fn.now())
       .notNullable()
       .comment('The timestamp when this entry was created');
-    table
-      .text('entity')
-      .notNullable()
-      .comment('Identifier of the entity these facts relate to');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('entity')
+        .notNullable()
+        .comment('Identifier of the entity these facts relate to');
+    } else {
+      table
+        .text('entity')
+        .notNullable()
+        .comment('Identifier of the entity these facts relate to');
+    }
     table
       .text('facts')
       .notNullable()

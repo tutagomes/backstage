@@ -58,13 +58,23 @@ exports.up = async function up(knex) {
           .comment(
             'An opaque string that changes for each update operation to any part of the entity, including metadata.',
           );
-        table
-          .string('generation')
-          .notNullable()
-          .unsigned()
-          .comment(
-            'A positive nonzero number that indicates the current generation of data for this entity; the value is incremented each time the spec changes.',
-          );
+        // MYSQL does not allow setting string as unsigned
+        if (knex.client.config.client === 'mysql2') {
+          table
+            .string('generation')
+            .notNullable()
+            .comment(
+              'A positive nonzero number that indicates the current generation of data for this entity; the value is incremented each time the spec changes.',
+            );
+        } else {
+          table
+            .string('generation')
+            .notNullable()
+            .unsigned()
+            .comment(
+              'A positive nonzero number that indicates the current generation of data for this entity; the value is incremented each time the spec changes.',
+            );
+        }
         table
           .string('api_version')
           .notNullable()

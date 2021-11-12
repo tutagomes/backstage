@@ -24,25 +24,40 @@ exports.up = async function up(knex) {
     table.comment(
       'Location refresh states. Every individual location (that was ever directly or indirectly discovered) and entity has an entry in this table. It therefore represents the entire live set of things that the refresh loop considers.',
     );
+    // MYSQL does not support using 'text' as Key or Unique
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .uuid('entity_id')
+        .primary()
+        .notNullable()
+        .comment(
+          'Primary ID, which will also be used as the uid of the resulting entity',
+        );
+      table
+        .string('entity_ref')
+        .notNullable()
+        .comment('A reference to the entity that the refresh state is tied to');
+    } else {
+      table
+        .text('entity_id')
+        .primary()
+        .notNullable()
+        .comment(
+          'Primary ID, which will also be used as the uid of the resulting entity',
+        );
+      table
+        .text('entity_ref')
+        .notNullable()
+        .comment('A reference to the entity that the refresh state is tied to');
+    }
     table
-      .text('entity_id')
-      .primary()
-      .notNullable()
-      .comment(
-        'Primary ID, which will also be used as the uid of the resulting entity',
-      );
-    table
-      .text('entity_ref')
-      .notNullable()
-      .comment('A reference to the entity that the refresh state is tied to');
-    table
-      .text('unprocessed_entity')
+      .text('unprocessed_entity', 'LONGTEXT')
       .notNullable()
       .comment(
         'The unprocessed entity (in its source form, before being run through all of the processors) as JSON',
       );
     table
-      .text('processed_entity')
+      .text('processed_entity', 'LONGTEXT')
       .nullable()
       .comment(
         'The processed entity (after running through all processors, but before being stitched together with state and relations) as JSON',
@@ -75,16 +90,30 @@ exports.up = async function up(knex) {
     table.comment(
       'This table contains the final entity result after processing and stitching',
     );
-    table
-      .text('entity_id')
-      .primary()
-      .notNullable()
-      .references('entity_id')
-      .inTable('refresh_state')
-      .onDelete('CASCADE')
-      .comment(
-        'Entity ID which corresponds to the ID in the refresh_state table',
-      );
+    // MYSQL does not support using 'text' as Key or Unique
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .uuid('entity_id')
+        .primary()
+        .notNullable()
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment(
+          'Entity ID which corresponds to the ID in the refresh_state table',
+        );
+    } else {
+      table
+        .text('entity_id')
+        .primary()
+        .notNullable()
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment(
+          'Entity ID which corresponds to the ID in the refresh_state table',
+        );
+    }
     table
       .text('hash')
       .notNullable()
@@ -111,28 +140,54 @@ exports.up = async function up(knex) {
     table
       .increments('id')
       .comment('Primary key to distinguish unique lines from each other');
-    table
-      .text('source_key')
-      .nullable()
-      .comment(
-        'When the reference source is not an entity, this is an opaque identifier for that source.',
-      );
-    table
-      .text('source_entity_ref')
-      .nullable()
-      .references('entity_ref')
-      .inTable('refresh_state')
-      .onDelete('CASCADE')
-      .comment(
-        'When the reference source is an entity, this is the EntityRef of the source entity.',
-      );
-    table
-      .text('target_entity_ref')
-      .notNullable()
-      .references('entity_ref')
-      .inTable('refresh_state')
-      .onDelete('CASCADE')
-      .comment('The EntityRef of the target entity.');
+    // MYSQL does not support using 'text' as Key or Unique
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('source_key')
+        .nullable()
+        .comment(
+          'When the reference source is not an entity, this is an opaque identifier for that source.',
+        );
+      table
+        .string('source_entity_ref')
+        .nullable()
+        .references('entity_ref')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment(
+          'When the reference source is an entity, this is the EntityRef of the source entity.',
+        );
+      table
+        .string('target_entity_ref')
+        .notNullable()
+        .references('entity_ref')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment('The EntityRef of the target entity.');
+    } else {
+      table
+        .text('source_key')
+        .nullable()
+        .comment(
+          'When the reference source is not an entity, this is an opaque identifier for that source.',
+        );
+      table
+        .text('source_entity_ref')
+        .nullable()
+        .references('entity_ref')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment(
+          'When the reference source is an entity, this is the EntityRef of the source entity.',
+        );
+      table
+        .text('target_entity_ref')
+        .notNullable()
+        .references('entity_ref')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment('The EntityRef of the target entity.');
+    }
     table.index('source_key', 'refresh_state_references_source_key_idx');
     table.index(
       'source_entity_ref',
@@ -146,25 +201,47 @@ exports.up = async function up(knex) {
 
   await knex.schema.createTable('relations', table => {
     table.comment('All relations between entities in the catalog');
-    table
-      .text('originating_entity_id')
-      .references('entity_id')
-      .inTable('refresh_state')
-      .onDelete('CASCADE')
-      .notNullable()
-      .comment('The entity that provided the relation');
-    table
-      .text('source_entity_ref')
-      .notNullable()
-      .comment('The entity reference of the source entity of the relation');
-    table
-      .text('type')
-      .notNullable()
-      .comment('The type of the relation between the entities');
-    table
-      .text('target_entity_ref')
-      .notNullable()
-      .comment('The entity reference of the target entity of the relation');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('originating_entity_id')
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .notNullable()
+        .comment('The entity that provided the relation');
+      table
+        .string('source_entity_ref')
+        .notNullable()
+        .comment('The entity reference of the source entity of the relation');
+      table
+        .text('type')
+        .notNullable()
+        .comment('The type of the relation between the entities');
+      table
+        .string('target_entity_ref')
+        .notNullable()
+        .comment('The entity reference of the target entity of the relation');
+    } else {
+      table
+        .text('originating_entity_id')
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .notNullable()
+        .comment('The entity that provided the relation');
+      table
+        .text('source_entity_ref')
+        .notNullable()
+        .comment('The entity reference of the source entity of the relation');
+      table
+        .text('type')
+        .notNullable()
+        .comment('The type of the relation between the entities');
+      table
+        .text('target_entity_ref')
+        .notNullable()
+        .comment('The entity reference of the target entity of the relation');
+    }
     table.index('source_entity_ref', 'relations_source_entity_ref_idx');
     table.index('originating_entity_id', 'relations_source_entity_id_idx');
   });
@@ -173,12 +250,21 @@ exports.up = async function up(knex) {
     table.comment(
       'Flattened key-values from the entities, used for quick filtering',
     );
-    table
-      .text('entity_id')
-      .references('entity_id')
-      .inTable('refresh_state')
-      .onDelete('CASCADE')
-      .comment('The entity that matches this key/value');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('entity_id')
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment('The entity that matches this key/value');
+    } else {
+      table
+        .text('entity_id')
+        .references('entity_id')
+        .inTable('refresh_state')
+        .onDelete('CASCADE')
+        .comment('The entity that matches this key/value');
+    }
     table
       .string('key')
       .notNullable()

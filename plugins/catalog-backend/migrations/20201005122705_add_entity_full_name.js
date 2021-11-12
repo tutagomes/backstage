@@ -21,7 +21,12 @@
  */
 exports.up = async function up(knex) {
   await knex.schema.alterTable('entities', table => {
-    table.text('full_name').nullable();
+    // MYSQL does not support using 'text' as Key or Unique
+    if (knex.client.config.client === 'mysql2') {
+      table.string('full_name').nullable();
+    } else {
+      table.text('full_name').nullable();
+    }
   });
 
   await knex('entities').update({
@@ -33,7 +38,12 @@ exports.up = async function up(knex) {
   // SQLite does not support alter column
   if (knex.client.config.client !== 'sqlite3') {
     await knex.schema.alterTable('entities', table => {
-      table.text('full_name').notNullable().alter();
+      // MYSQL does not support using 'text' as Key or Unique
+      if (knex.client.config.client === 'mysql2') {
+        table.string('full_name').notNullable().alter();
+      } else {
+        table.text('full_name').notNullable().alter();
+      }
     });
   }
 

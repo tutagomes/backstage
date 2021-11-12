@@ -24,10 +24,17 @@ exports.up = async function up(knex) {
     table.comment(
       'The table for tech insight fact schemas. Containing a versioned data model definition for a collection of facts.',
     );
-    table
-      .text('id')
-      .notNullable()
-      .comment('Identifier of the fact retriever plugin/package');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('id')
+        .notNullable()
+        .comment('Identifier of the fact retriever plugin/package');
+    } else {
+      table
+        .text('id')
+        .notNullable()
+        .comment('Identifier of the fact retriever plugin/package');
+    }
     table
       .string('version')
       .notNullable()

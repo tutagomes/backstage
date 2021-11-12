@@ -23,7 +23,12 @@ exports.up = async function up(knex) {
   // Sqlite does not support alter column.
   if (knex.client.config.client !== 'sqlite3') {
     await knex.schema.alterTable('entities_search', table => {
-      table.text('value').nullable().alter();
+      // MYSQL does not support using 'text' as Key or Unique
+      if (knex.client.config.client === 'mysql2') {
+        table.string('value').nullable().alter();
+      } else {
+        table.text('value').nullable().alter();
+      }
     });
   }
 };

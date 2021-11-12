@@ -23,10 +23,13 @@ exports.up = async function up(knex) {
   await knex('entities')
     .where({ namespace: null })
     .update({ namespace: 'default' });
-  await knex('entities_search').update({
-    key: knex.raw('LOWER(key)'),
-    value: knex.raw('LOWER(value)'),
-  });
+  // As MYSQL is case insensitive
+  if (knex.client.config.client !== 'mysql2') {
+    await knex('entities_search').update({
+      key: knex.raw('LOWER(key)'),
+      value: knex.raw('LOWER(value)'),
+    });
+  }
 };
 
 exports.down = async function down() {};

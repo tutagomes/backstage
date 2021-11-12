@@ -349,16 +349,22 @@ export class DefaultProcessingDatabase implements ProcessingDatabase {
       .orderBy('next_update_at', 'asc');
 
     const interval = this.options.refreshInterval();
+    const getNextUpdate = (client: string, seconds: number) => {
+      if (client === 'sqlite3') {
+        return tx.raw(`datetime('now', ?)`, [`${seconds} seconds`]);
+      }
+      if (client === 'mysql2') {
+        return tx.raw(`now() + interval ${seconds} SECOND`);
+      }
+      return tx.raw(`now() + interval '${seconds} seconds'`);
+    };
     await tx<DbRefreshStateRow>('refresh_state')
       .whereIn(
         'entity_ref',
         items.map(i => i.entity_ref),
       )
       .update({
-        next_update_at:
-          tx.client.config.client === 'sqlite3'
-            ? tx.raw(`datetime('now', ?)`, [`${interval} seconds`])
-            : tx.raw(`now() + interval '${interval} seconds'`),
+        next_update_at: getNextUpdate(tx.client.config.client, interval),
       });
 
     return {

@@ -33,10 +33,17 @@ exports.up = async function up(knex) {
       .notNullable()
       .comment('An insert counter to ensure ordering');
     table.uuid('id').notNullable().comment('The ID of the code coverage');
-    table
-      .text('entity')
-      .notNullable()
-      .comment('The entity ref that this code coverage applies to');
+    if (knex.client.config.client === 'mysql2') {
+      table
+        .string('entity')
+        .notNullable()
+        .comment('The entity ref that this code coverage applies to');
+    } else {
+      table
+        .text('entity')
+        .notNullable()
+        .comment('The entity ref that this code coverage applies to');
+    }
     table
       .text('coverage')
       .notNullable()
